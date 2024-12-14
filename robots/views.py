@@ -12,6 +12,7 @@ def create_robot(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            serial = data['serial']
             model = data['model']
             version = data['version']
             created = parse_datetime(data['created'])
@@ -19,13 +20,14 @@ def create_robot(request):
             if not model or not version or not created:
                 return JsonResponse({'Ошибка': 'Не верные данные.'}, status=400)
 
-            if not Robot.objects.filter(model=model).exists():
-                return JsonResponse({'Ошибка': f'Модели {model} нет в базе.'}, status=400)
+            existing_robot = Robot.objects.filter(model=model, version=version).first()
 
-            if not Robot.objects.filter(model=model, version=version).exists():
-                return JsonResponse({'Ошибка': f'Версии {version} для модели {model} нет в базе.'}, status=400)
+            if existing_robot:
+                serial = existing_robot.serial
+            else:
+                return JsonResponse({'Ошибка': f'Робота модели {model} и версии {version} не найдены в базе.'}, status=400)
 
-            robot = Robot.objects.create(model=model, version=version, created=created)
+            robot = Robot.objects.create(serial = serial, model=model, version=version, created=created, in_stock=True)
             robot.save()
             return JsonResponse({'Сообщение': 'Запись создана успешно'}, status=201)
 
